@@ -35,7 +35,7 @@
             }
 
             return clone;
-        } else if (typeof (obj) == "object") {
+        } else if (typeof (obj) === "object") {
             clone = {};
             for (let prop in obj)
                 if (obj.hasOwnProperty(prop))
@@ -66,13 +66,127 @@
             if (!target.hasOwnProperty(key)) {
                 continue;
             }
-            if (typeof target[key] == "object") {
+            if (typeof target[key] === "object") {
                 copy[key] = deepCopy(target[key]);
             } else {
                 copy[key] = target[key];
             }
         }
         return this;
+    }
+
+    class Select {
+        #main;
+
+        /**
+         *
+         * @param main {El}
+         */
+        constructor(main) {
+            this.#main = main;
+        }
+
+        setSelect(opt) {
+            this.#main.element.options[opt].selected = true;
+            if (this.#main.element.tagName === 'DATALIST') {
+                let inputs = this.#main.element.parentElement.getElementsByTagName('input');
+                inputs = Array.from(inputs);
+                inputs.forEach(input => {
+                    let list = input.getAttribute('list');
+                    if (list === this.#main.id()) {
+                        input.value = this.#main.element.options[opt].value;
+                    }
+                });
+            }
+        };
+
+        /**
+         *
+         * @param val {string}
+         * @returns {string|boolean}
+         */
+        setSelectByValue(val) {
+            let
+                i = 0,
+                options = Array.from(this.#main.element.options),
+                res = false;
+            options.some(select => {
+                if (select.value === val) {
+                    this.setSelect(i);
+                    res = true;
+                    return res;
+                }
+                i++;
+            });
+            return res;
+        };
+
+        getSelect() {
+            return this.#main.element.options[this.getIndex()];
+        };
+
+        getIndex() {
+            return this.#main.element.selectedIndex;
+        };
+
+        getValue() {
+            return this.getSelect().value;
+        };
+
+        getText() {
+            return this.getSelect().text;
+        };
+
+        clearOptions() {
+            this.#main.html('');
+        };
+
+        /**
+         *
+         * @param value {null|string}
+         * @param text {string}
+         * @param select
+         * @returns {string|null|El}
+         */
+        addOption(value, text, select = false) {
+            let attr = {
+                value: value,
+            };
+            if (select) {
+                attr = Object.assign(attr, {
+                    selected: 'selected'
+                });
+            }
+            return El.New('option').attr(attr).html(text).insert(this.#main.el);
+        };
+
+        /**
+         *
+         * @param options {object}
+         */
+        addOptions(options) {
+            for (let data in options) {
+                if (!options.hasOwnProperty(data)) {
+                    continue;
+                }
+                this.addOption(data, options[data]);
+            }
+        };
+
+        values() {
+            let result = [];
+            Array.from(this.#main.element.options).forEach(option => {
+                result.push(option.value);
+            });
+            return result;
+        };
+
+        foreach(cb) {
+            let options = Array.from(this.#main.element.options);
+            options.forEach(select => {
+                cb.call(this, select);
+            })
+        };
     }
 
     /**
@@ -90,15 +204,15 @@
          * @returns {[]|undefined|El}
          */
         constructor(element) {
-            if (typeof element == 'undefined' || element == null) {
+            if (typeof element === 'undefined' || element == null) {
                 this.element = document.body;
             } else if (element instanceof El) {
                 return element;
-            } else if (typeof element == 'string') {
+            } else if (typeof element === 'string') {
                 let
-                    idPattern = /^(?:#([\w-]*))$/,
+                    idPattern = /^(?:#([\w-]+))$/,
                     searchId = idPattern.exec(element),
-                    classPattern = /^(?:\.([\w-]*))$/,
+                    classPattern = /^(?:\.([\w-]+))$/,
                     searchClass = classPattern.exec(element);
                 if (searchId && searchId[1]) {
                     this.element = document.getElementById(searchId[1]);
@@ -235,7 +349,7 @@
                     'file'
                 ]
             ;
-            if (allow.includes(type)) {
+            if (!allow.includes(type)) {
                 return null;
             }
             if (value == null) {
@@ -257,7 +371,7 @@
 
         /**
          *
-         * @returns {(function((null|string)=, boolean=, boolean=): (string|null|El))|(function((null|string), boolean, boolean): (string|El|null))|(function(*): string)|string|string|*}
+         * @returns {null|HTMLElement|string|*}
          */
         getHtml() {
             return this.element.html || this.element.innerHTML || this.element.value || this.element.text || '';
@@ -265,111 +379,13 @@
 
         /**
          * Работа с ListBox`ами или DataList`ами
-         * [{"groups":[{"name":"Group_0","args":[{"type":"list","list":["1","2","3","4","5"],"name":"List_0"}]}]}]
-         * @returns {null|{getValue: (function(): *), foreach: foreach, getSelect: (function(): *), getIndex: (function(): *), addOption: (function(string, string, *=): (string|null|El)), setSelect: setSelect, getText: (function(): *), setSelectByValue: (function(string): (string|boolean)), clearOptions: clearOptions, addOptions: addOptions}}
+         * @returns {null|Select}
          */
         select() {
             if (this.isNull()) {
                 return null;
             }
-            const _this = this;
-            return {
-                /**
-                 *
-                 * @param opt {number}
-                 */
-                setSelect: function (opt) {
-                    _this.element.options[opt].selected = true;
-                    if (_this.element.tagName === 'DATALIST') {
-                        let inputs = _this.element.parentElement.getElementsByTagName('input');
-                        inputs = Array.from(inputs);
-                        inputs.forEach(input => {
-                            let list = input.getAttribute('list');
-                            if (list === _this.id()) {
-                                input.value = _this.element.options[opt].value;
-                            }
-                        });
-                    }
-                },
-                /**
-                 *
-                 * @param val {string}
-                 * @returns {string|boolean}
-                 */
-                setSelectByValue: function (val) {
-                    let
-                        i = 0,
-                        options = Array.from(_this.element.options),
-                        res = false;
-                    options.some(select => {
-                        if (select.value === val) {
-                            this.setSelect(i);
-                            res = true;
-                            return res;
-                        }
-                        i++;
-                    });
-                    return res;
-                },
-                getSelect: function () {
-                    return _this.element.options[this.getIndex()];
-                },
-                getIndex: function () {
-                    return _this.element.selectedIndex;
-                },
-                getValue: function () {
-                    return this.getSelect().value;
-                },
-                getText: function () {
-                    return this.getSelect().text;
-                },
-                clearOptions: function () {
-                    _this.html('');
-                },
-                /**
-                 *
-                 * @param value {null|string}
-                 * @param text {string}
-                 * @param select
-                 * @returns {string|null|El}
-                 */
-                addOption: function (value, text, select = false) {
-                    let attr = {
-                        value: value,
-                    };
-                    if (select) {
-                        attr = Object.assign(attr, {
-                            selected: 'selected'
-                        });
-                    }
-                    return El.New('option').attr(attr).html(text).insert(_this.el);
-                },
-                /**
-                 *
-                 * @param options {object}
-                 */
-                addOptions: function (options) {
-                    for (let data in options) {
-                        if (!options.hasOwnProperty(data)) {
-                            continue;
-                        }
-                        this.addOption(data, options[data]);
-                    }
-                },
-                values: function () {
-                    let result = [];
-                    Array.from(_this.element.options).forEach(option => {
-                        result.push(option.value);
-                    });
-                    return result;
-                },
-                foreach: function (cb) {
-                    let options = Array.from(_this.element.options);
-                    options.forEach(select => {
-                        cb.call(this, select);
-                    })
-                }
-            }
+            return new Select(this);
         }
 
         /**
@@ -785,7 +801,7 @@
         find(search, asDOMElement = false) { //
             if (typeof search != 'string') return [];
             let
-                r = /^(?:[#|\.]([\w-]*))$/, //смотрим знак идентификатора # (#main) или знак класса
+                r = /^(?:[#|\.]([\w-]+))$/, //смотрим знак идентификатора # (#main) или знак класса
                 m = r.exec(search),
                 f = null,
                 p = null;
