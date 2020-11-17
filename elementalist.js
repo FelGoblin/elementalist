@@ -60,6 +60,12 @@
         };
     })();
 
+    /**
+     * Функция глубокого копирования объекта
+     * @param target
+     * @param copy
+     * @returns {deepCopy}
+     */
     function deepCopy(target, copy) {
         copy = target.constructor();
         for (let key in target) {
@@ -75,6 +81,9 @@
         return this;
     }
 
+    /**
+     * Класс для работы с select`ами и data lis`ами
+     */
     class Select {
         #main;
 
@@ -186,6 +195,59 @@
             options.forEach(select => {
                 cb.call(this, select);
             })
+        };
+    }
+
+    /**
+     * Клас для обработки аттрибутов элемента
+     */
+    class Attribute {
+        #main;
+
+        constructor(main) {
+            this.#main = main;
+        }
+
+        del(attribute) {
+            this.#main.element.removeAttribute(attribute);
+            return this.#main;
+        };
+
+        /**
+         *
+         * @param attribute
+         * @returns {boolean}
+         */
+        has(attribute) {
+            return this.#main.element.hasAttribute(attribute);
+        };
+
+        /**
+         *
+         * @param attributes
+         * @returns {El}
+         */
+        set(attributes) {
+            for (let k in attributes) {
+                if (!attributes.hasOwnProperty(k)) {
+                    continue;
+                }
+                if (El.isEmpty(attributes[k]) && k !== 'disabled' && k !== 'checked') {
+                    this.#main.attr().del(attributes[k]);
+                } else {
+                    this.#main.element.setAttribute(k, attributes[k]);
+                }
+            }
+            return this.#main;
+        };
+
+        /**
+         * Получить аттрибут
+         * @param attribute {string}
+         * @returns {*|undefined|string}
+         */
+        get(attribute) {
+            return this.#main.element.getAttribute(attribute);
         };
     }
 
@@ -398,52 +460,7 @@
                 return undefined;
             }
             if (attribute == null) {
-                let _this = this;
-                return {
-                    /**
-                     *
-                     * @param attribute
-                     * @returns {El}
-                     */
-                    del: function (attribute) {
-                        _this.element.removeAttribute(attribute);
-                        return _this;
-                    },
-                    /**
-                     *
-                     * @param attribute
-                     * @returns {boolean}
-                     */
-                    has: function (attribute) {
-                        return _this.element.hasAttribute(attribute);
-                    },
-                    /**
-                     *
-                     * @param attributes
-                     * @returns {El}
-                     */
-                    set: function (attributes) {
-                        for (let k in attributes) {
-                            if (!attributes.hasOwnProperty(k)) {
-                                continue;
-                            }
-                            if (El.#isEmpty(attributes[k]) && k !== 'disabled' && k !== 'checked') {
-                                _this.attr().del(attributes[k]);
-                            } else {
-                                _this.element.setAttribute(k, attributes[k]);
-                            }
-                        }
-                        return _this;
-                    },
-                    /**
-                     * Получить аттрибут
-                     * @param attribute {string}
-                     * @returns {*|undefined|string}
-                     */
-                    get: function (attribute) {
-                        return _this.element.getAttribute(attribute);
-                    }
-                }
+                return new Attribute(this);
             } else if (typeof attribute === 'object') {
                 return this.attr().set(attribute);
             } else if (typeof attribute === 'string') {
@@ -475,7 +492,7 @@
          * @returns {El|{add: (function(*=): (El)), isSet: (function(string): boolean), get: (function(): *), clear: (function(): El), replace: (function(string, string): El), del: (function(*=): El)}}
          */
         class(c = null) {
-            if (El.#isEmpty(c)) {
+            if (El.isEmpty(c)) {
                 let
                     _this = this,
                     /**
@@ -590,7 +607,7 @@
          * @returns {El}
          */
         insert(parent) { //вставить объект в документ
-            if (El.#isEmpty(parent)) {
+            if (El.isEmpty(parent)) {
                 //вообще странная хрень, пару раз нещадно  глючило.
                 if (document.body) {
                     document.body.appendChild(this.element);
@@ -613,7 +630,7 @@
          * @returns {El}
          */
         insertBefore(element) {
-            if (El.#isEmpty(element)) {
+            if (El.isEmpty(element)) {
                 return this.insert();
             }
             if (element instanceof El) {
@@ -635,7 +652,7 @@
          * @returns {El}
          */
         insertAfter(element) { //вставить после элемента
-            if (El.#isEmpty(element)) {
+            if (El.isEmpty(element)) {
                 return this.insert();
             }
             if (element instanceof El) {
@@ -655,7 +672,7 @@
          * @returns {El}
          */
         insertFirst(element) {
-            if (El.#isEmpty(element)) {
+            if (El.isEmpty(element)) {
                 element = document.body;
             }
             if (element instanceof El) {
@@ -686,7 +703,7 @@
          * @returns {El}
          */
         swap(element) {
-            if (El.#isEmpty(element)) {
+            if (El.isEmpty(element)) {
                 return this;
             }
             if (element instanceof El) {
@@ -715,7 +732,7 @@
          * @returns {El}
          */
         replace(element) { //
-            if (El.#isEmpty(element)) {
+            if (El.isEmpty(element)) {
                 return this.insert();
             }
             if (element instanceof El) {
@@ -904,7 +921,7 @@
             let els = this.element.getElementsByTagName(tag);
             Array.from(els).forEach(detourEl => {
                 let attr = El.New(detourEl).attr(attrName);
-                if (!El.#isEmpty(attrValue)) {
+                if (!El.isEmpty(attrValue)) {
                     if (attr === attrValue) {
                         result.push(asDOMElement ? detourEl : El.New(detourEl));
                     }
@@ -1203,12 +1220,12 @@
             return res;
         }
 
-        static #isEmpty(param) {
+        static isEmpty(param) {
             return (param == null || param === '');
         }
 
         static #getTarget(target) {
-            if (El.#isEmpty(target)) {
+            if (El.isEmpty(target)) {
                 target = document.body;
             }
             if (target instanceof El) {
@@ -1377,6 +1394,9 @@
             }
         }
 
+        /**
+         * Приватная функция, сравнивает снимок своих полей с текущим состоянием и если обнаружится различие, то создаёт событие, что поле поменялось
+         */
         #getSnapshot() {
             for (let property in this) {
                 if (!this.hasOwnProperty(property)) {
@@ -1410,6 +1430,11 @@
             }
         }
 
+        /**
+         * Функция сравнения
+         * @param property
+         * @returns {boolean}
+         */
         #equals(property) {
             if (this.#snapshot[property] == null && this[property] != null) {
                 return false;
@@ -1423,6 +1448,10 @@
             }
         }
 
+        /**
+         * Вызвать callback функцию
+         * @param property
+         */
         #rise(property) {
             if (this.#riseEvents.hasOwnProperty(property)) {
                 this.#riseEvents[property].forEach(rise => {
@@ -1431,6 +1460,12 @@
             }
         }
 
+        /**
+         * Привязать поле класса к callback функции
+         * @param property
+         * @param caller
+         * @param fn
+         */
         bind(property, caller, fn) {
             if (!this.#riseEvents.hasOwnProperty(property)) {
                 this.#riseEvents[property] = [];
@@ -1441,6 +1476,12 @@
             })
         }
 
+        /**
+         * Отвязать поле класса от cb функции
+         * @param property
+         * @param caller
+         * @param fn
+         */
         unbind(property, caller, fn) {
             if (this.#riseEvents[property] instanceof Array) {
                 let find;
@@ -1459,7 +1500,7 @@
         }
 
     }
-
+    
     window.El = El.New;
     window.Bind = Bind;
 })();
